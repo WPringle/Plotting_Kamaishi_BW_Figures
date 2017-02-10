@@ -7,7 +7,7 @@ close all;
 %load('../Inputs/Survey_data_order.mat'); % Contains x, y and z data
 %N = length(height_order);      % number of survey locations
 
-M = csvread('../Inputs/ttjt_survey_Ryoishi_Kamaishi_Toni_tidecorrected.csv');
+M = csvread('../../Inputs/ttjt_survey_Ryoishi_Kamaishi_Toni_tidecorrected.csv');
 
 N = length(M);
 
@@ -16,8 +16,9 @@ B_x = B_x + 500000;
 %B_y = B_y - 3.5d6;
 
 % Calculation directory
-dir_num{1} = 'Satakev8.0_2DH_BW_FD\DAT\'; 
-dir_num{2} = 'Satakev8.0_3D_Real_BW\DAT\'; 
+dir_num{1} = '../Satakev8.0_2DH_BW_FD\DAT\'; 
+dir_num{2} = '../Satakev8.0_ke\DAT\'; 
+%dir_num{2} = 'Satakev8.0_3D_Real_BW\DAT\'; 
 legend_name = {'2DH NSWE','2CLOWNS-3D'}; 
 %
 %
@@ -159,9 +160,9 @@ for p = 1:L
     %xlim([min(height_order) 12])
     %ylim([min(height_order) 12])
 end
-set(gca,'fontsize',7)
-set(gcf,'PaperUnits','centimeters','PaperPosition',[0 0 14 7],'PaperPositionMode','manual');
-print('-r600','-depsc','../Paper/Max_Inun_Loc.eps');
+% set(gca,'fontsize',7)
+% set(gcf,'PaperUnits','centimeters','PaperPosition',[0 0 14 7],'PaperPositionMode','manual');
+% print('-r600','-depsc','../Paper/Max_Inun_Loc.eps');
 
 
 % fid = fopen('../Inputs/Survey.xy','w');

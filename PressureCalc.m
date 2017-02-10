@@ -9,7 +9,7 @@ rho=1.025; %specific gravity of salt water
 Weight = (2.3*2.7 + 2.1*8.3)*g; %kN/m^2
 Fc = 0.6;  % friction coefficient
 %% 2DH part
-direc = 'Satakev8.0_2DH_BW_FD/'; %'Satakev8.0_3D_Real_BW/';
+direc = '../Satakev8.0_2DH_BW_FD/'; %'Satakev8.0_3D_Real_BW/';
 fname = 'Satakev8.0_2DH_BW_FD'; %'Satakev8.0_3D_Real_BW_';
 load([direc 'MAT_files/' fname 'xyzF.mat'])
 
@@ -71,7 +71,7 @@ Rmhmin = (Weight - min(Lift,[],2))*13*6.5; %kN
 Rmhmax = (Weight - max(Lift,[],2))*13*6.5; %kN
 
 %% 3D part
-direc = 'Satakev8.0_3D_Real_BW/';
+direc = '../Satakev8.0_3D_Real_BW/';
 load([direc 'MAT_files/Satake_BW_Real_ke.xyznF.mat'])
 
 zs = find ( z >= -32 & z < -20.42);
@@ -185,7 +185,7 @@ set(gca,'fontsize',7)
 set(gcf,'PaperUnits','centimeters','PaperPosition',[0 0 9 10]) %...
     %'PaperPositionMode','manual');
 
-print('-r600','-dpdf','../Paper/Submerged_caisson_force.pdf')
+%print('-r600','-dpng','../../Paper/Submerged_caisson_force.png')
 
 % temax = Memax./Wemax; thmax = Mhmax./Wemax; 
 % temin = Memin./Wemin; thmin = Mhmin./Wemin;

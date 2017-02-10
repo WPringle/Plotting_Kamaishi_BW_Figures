@@ -14,7 +14,7 @@ g = 9.807; %gravity
 nu = 1d-6; % viscosity of water
 
 %% 3D part
-direc = 'Satakev8.0_3D_Real_BW/'; 
+direc = '../Satakev8.0_3D_Real_BW/'; 
 fname = 'Satake_BW_Real_ke.'; 
 load([direc 'MAT_files/' fname 'xyznF.mat'])
 
@@ -123,10 +123,10 @@ grdwrite2(xx,yy,Tbs,[direc fname 'Tbs3D.nc'])
 %% 2DH part
 for ii = 1:2
     if ii == 1
-        direc = 'Satakev8.0_3D_Real_BW/'; 
+        direc = '../Satakev8.0_3D_Real_BW/'; 
         fname = 'Satakev8.0_3D_Real_BW_';  
     elseif ii == 2
-        direc = 'Satakev8.0_2DH_BW_FD/'; 
+        direc = '../Satakev8.0_2DH_BW_FD/'; 
         fname = 'Satakev8.0_2DH_BW_FD'; 
     end
     load([direc 'MAT_files/' fname 'xyzF.mat'])
@@ -190,5 +190,5 @@ for ii = 1:2
     colormap jet
     caxis([0 10])
     
-    grdwrite2(xx,yy,Tb2Ds,[direc fname 'Tbs2D.nc'])
+    %grdwrite2(xx,yy,Tb2Ds,[direc fname 'Tbs2D.nc'])
 end

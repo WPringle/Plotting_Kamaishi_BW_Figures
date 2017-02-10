@@ -8,7 +8,7 @@ clearvars; clc; close all;
 % fname = 'Tohoku_SatakeT_HYB_ke_k1mm_wall.';
 % oname = 'ke_wall';
 
-direc = 'Satakev8.0_3D_Real_BW/';
+direc = '../Satakev8.0_3D_Real_BW/';
 fname = 'Satake_BW_Real_ke.';
 oname = 'Real_ke';
 % direc = 'Satakev8.0_ke_HR_DeepOn/';
@@ -26,8 +26,8 @@ Ordered = Listc'; %sortrows(Listc',5);
 load([direc 'MAT_files/' fname 'xyzn.mat']);  
 
 %% Choose wanted points 
-if strcmp(direc,'Satakev8.0_3D_Real_BW/')
-    L = 210;
+if strcmp(direc,'../Satakev8.0_3D_Real_BW/')
+    L = floor(L);
 end
 dz = 2.2;  % vertical cell size
 dy = 10;   % horizontal cell size
@@ -112,16 +112,17 @@ end
 %% Plot points versus time 
 figure;
 plot(time,ux_want,'-o')
-
+hold on
+plot([time(1) time(end)],[ prctile(ux_want,80); prctile(ux_want,80)],'--')
 legend(['x/h = ' num2str(xh_want(1))],['x/h = ' num2str(xh_want(2))],...
        ['x/h = ' num2str(xh_want(3))],['x/h = ' num2str(xh_want(4))],...
        'location','best') %['x/h = ' num2str(xh_want(5))]
 
-xlim([1300 2500])
+xlim([1300 2400])
 ylim([0 14])
 xlabel('time [s]')
 ylabel('U_{m} [m/s]')
-title('Transient nature of maximum velocities onshore of breakwater')
+%title('Transient nature of maximum velocities onshore of breakwater')
 
 %print('-r600','-dpng',['../Presentation/' oname '_Umt.png'])
 

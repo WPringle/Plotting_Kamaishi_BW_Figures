@@ -4,16 +4,17 @@
 
 clearvars; clc; close all;
 
-%Setting up the subplot margins
+%percentile setting
+perc_set = 80;
 
 %% Set and load the data
 for turb = 1:2
     if turb == 1
-        direc = 'Satakev8.0_ke/';
+        direc = '../Satakev8.0_ke/';
         fname = 'Tohoku_SatakeT_HYB_ke_k1mm_wall.';
         oname = 'ke_wall';
     elseif turb == 2
-        direc = 'Satakev8.0_3D_Real_BW/';
+        direc = '../Satakev8.0_3D_Real_BW/';
         fname = 'Satake_BW_Real_ke.';
         oname = 'Real_ke';
     end
@@ -29,8 +30,8 @@ for turb = 1:2
     load([direc 'MAT_files/' fname 'xyzn.mat']);  
 
     %% Choose wanted points 
-    if strcmp(direc,'Satakev8.0_3D_Real_BW/')
-        L = 210;
+    if turb == 2
+        L = floor(L);
     end
     dz = 2.2;  % vertical cell size
     dy = 10;   % horizontal cell size
@@ -50,7 +51,8 @@ for turb = 1:2
     I(I == 1) = 2;
     % Initialise the ux_want and time
     ux_want = zeros(L,length(I));
-    ux_all = zeros(L,ie(1)); c_mu_all = zeros(L,ie(1)); nu_t_all = zeros(L,ie(1)); 
+    ux_all = zeros(L,ie(1)); c_mu_all = zeros(L,ie(1)); 
+    nu_t_all = zeros(L,ie(1)); k_all = zeros(L,ie(1)); 
     uz_all = zeros(L,ie(1),k(end)); kz_all = zeros(L,ie(1),k(end)); 
     uy_all = zeros(L,ie(1),ie(2)-1); ky_all = zeros(L,ie(1),ie(2)-1);
     vz_all = zeros(L,ie(1),k(end)); vy_all = zeros(L,ie(1),ie(2)-1);
@@ -74,7 +76,8 @@ for turb = 1:2
 
         % Get the velocities at wanted points
         % Make the Ux vector for all x points
-        ux = zeros(ie(1),1); c_mu = zeros(ie(1),1); nu_t_n = zeros(ie(1),1);
+        ux = zeros(ie(1),1); c_mu = zeros(ie(1),1); 
+        nu_t_n = zeros(ie(1),1); k_n = zeros(ie(1),1);
         uz05 = zeros(ie(1),k(end));  kz05 = zeros(ie(1),k(end)); 
         vz05 = zeros(ie(1),k(end));  tz05 = zeros(ie(1),k(end));
         uy05 = zeros(ie(1),ie(2)-1); ky05 = zeros(ie(1),ie(2)-1); 
@@ -84,6 +87,10 @@ for turb = 1:2
             ux(ii) = max(-u(nn,1));
             c_mu_n = nu_t(nn).*eps(nn)./rk(nn).^2; 
             nu_t_n(ii) = mean(mean(nu_t(nn)));
+            %k_n(ii) = mean(mean(rk(nn)));
+            k_n(ii) = mean(sqrt(2/3*reshape(rk(nn),...
+                               size(rk(nn),1)*size(rk(nn),2),1))./...
+                               sqrt(u(nn,1).^2 + u(nn,2).^2 + u(nn,3).^2));
             c_mu(ii) = mean(mean(c_mu_n(~isnan(c_mu_n))));
             for kk = is(3):k(end)
                 nnk = mn(j,kk,ii);
@@ -107,7 +114,8 @@ for turb = 1:2
             end
         end
         ux_want(t,:) = ux(I);
-        ux_all(t,:)  = ux; c_mu_all(t,:) = c_mu; nu_t_all(t,:) = nu_t_n;
+        ux_all(t,:)  = ux; c_mu_all(t,:) = c_mu; 
+        nu_t_all(t,:) = nu_t_n; k_all(t,:) = k_n;
         uz_all(t,:,:) = uz05; kz_all(t,:,:) = kz05; vz_all(t,:,:) = vz05; 
         uy_all(t,:,:) = uy05; ky_all(t,:,:) = ky05; vy_all(t,:,:) = vy05; 
     end
@@ -115,48 +123,92 @@ for turb = 1:2
     [time,tI] = sort(time); ux_want = ux_want(tI,:);
     
     %% Plot max nu_t and min c_mu versus location downstream
-    figure(2);
-    subplot = @(m,n,p) subtightplot (m, n, p, [0.06 0.02], ...
-                                          [0.09 0.01], [0.12 0.01]);
-    subplot(2,1,1)
     nu_t_max = max(nu_t_all); 
+    k_max = max(k_all);
     if turb == 1
-        plot(xh(1:i),nu_t_max(1:i),'k--')
-        hold on
+        %[ax, h1, h2] = plotyy(xh(1:i),nu_t_max(1:i),xh(1:i),k_max(1:i)); %,'k--')
+        % save
+        xh_1 = xh(1:i);
+        nut_1 = nu_t_max(1:i);
+        k_1 = k_max(1:i);
     elseif turb == 2
-        plot(xh(1:i),nu_t_max(1:i),'k-')
-        xlim([0 78])
+        figure(2);
+        subplot = @(m,n,p) subtightplot (m, n, p, [0.06 0.02], ...
+                                              [0.1 0.01], [0.12 0.05]);
+        subplot(2,1,1)
+        
+        [ax, h1, h2] = plotyy(xh_1,nut_1,xh_1,k_1); %,'k--')
+        set(ax(1), 'YColor', 'blue')
+        set(ax(2), 'YColor', 'red')
+        set(h1, 'Color', 'blue')
+        set(h2, 'Color', 'red')
+        hold(ax(1), 'on')
+        hold(ax(2), 'on')
+        h3 = plot(xh(1:i),nu_t_max(1:i), '--b', 'Parent', ax(1));
+        h4 = plot(xh(1:i),k_max(1:i), '--r', 'Parent', ax(2)); %,'k-')
+        %xlim([0 78])
         %ylim([0.03 0.09])
         %xlabel('\itx/h')
         set(gca,'XTickLabel','');
-        ylabel('\it\nu_t')
-        legend('Standard \itk-\epsilon','Realizable \itk-\epsilon',...
-               'Location','NorthWest');
+        axes(ax(1)); ylabel('\it\nu_t\rm [m^2s^{-1}]'); xlim([0 78])
+        axes(ax(2)); ylabel('\itI'); xlim([0 78])
+        %ylabel('\it\nu_t\rm [m^2s^{-1}]')
+        
+        legend([h1 h2 h3 h4], ...
+            '\nu_t (standard)','I (standard)',...
+            '\nu_t (realizable)','I (realizable)',...
+             'Location','NorthWest');
+        
+%         legend('Standard \itk-\epsilon','Realizable \itk-\epsilon',...
+%                'Location','NorthWest');
         %set(hl,'Interpreter','latex')
-        set(gca,'fontsize',7) %,'Yticklabel',0.03:0.01:0.09)
+        set(ax(1),'fontsize',7) %,'Yticklabel',0.03:0.01:0.09)
+        set(ax(2),'fontsize',7)
         
         % Plot min c_mu versus location downstream
         subplot(2,1,2)
         c_mu_min = min(c_mu_all); 
-        plot(xh(1:i),c_mu_min(1:i),'-')
-        xlabel('\itx/h')
+        plot(xh(1:i),c_mu_min(1:i),'k-')
+        xlabel('\itx_j/h_j')
         xlim([0 78])
         ylim([0.03 0.09])
         ylabel('\itC_{\mu}')
         set(gca,'fontsize',7,'Yticklabel',0.03:0.01:0.09)
-        set(gcf,'PaperUnits','centimeters','PaperPosition',[0 0 9 9],...
-            'PaperPositionMode','manual');
-        print('-r600','-depsc','../Paper/nu_t_max_cu_mu_min.eps'); 
+
+       %% Plot points versus time 
+        figure(3);
+        plot(time/60,ux_want,'x-')
+        hold on
+        for jj = 1:length(xh_want)
+            idx = find(ux_want(:,jj) > prctile(ux_want(:,jj),80));
+            plot(time(idx)/60,ux_want(idx,jj),'ko')
+        end
+        %plot([21.5 40],[ prctile(ux_want,80); prctile(ux_want,80)],'k--')
+        legend(['\itx_j/h_j\rm = ' num2str(xh_want(1))],...
+               ['\itx_j/h_j\rm = ' num2str(xh_want(2))],...
+               ['\itx_j/h_j\rm = ' num2str(xh_want(3))],...
+               ['\itx_j/h_j\rm = ' num2str(xh_want(4))],...
+               'location','best') %['x/h = ' num2str(xh_want(5))]
+        xlim([21.67 40])
+        ylim([0 14])
+        xlabel('time since earthquake rupture [min]')
+        ylabel('\itU_{m}\rm [m/s]')
+        set(gca,'fontsize',7)
     end
+    
     %% Time average ux_all for decay analysis
     figure(1); 
     subplot = @(m,n,p) subtightplot (m, n, p, [0.06 0.03], ...
-                                          [0.08 0.02], [0.07 0.01]);
+                                          [0.1 0.02], [0.07 0.01]);
     %
-    U90 = prctile(ux_all,90,1);
-    Um = zeros(1,i);
+    U90 = prctile(ux_all,perc_set,1);
+    Um = zeros(1,i); interval = zeros(length(time),i);
     for ii = 1:i
-        Um(ii)  = mean(ux_all(ux_all(:,ii) > U90(ii),ii));
+        intn = find(ux_all(:,ii) > U90(ii));
+        if ~isempty(intn)
+            Um(ii)  = mean(ux_all(intn,ii));
+            interval(1:length(intn),ii) = intn;
+        end
     end
     U0 = Um(i);
     
@@ -165,47 +217,48 @@ for turb = 1:2
     loglog(xh(1:i),Um/U0,'.')
     % 
     hold on
-    if strcmp(direc,'Satakev8.0_Norm_Real_ke/') || strcmp(direc,'Satakev8.0_3D_Real_BW/')
-        %I = find(xh >= 1 & xh <= 15);
-        I = find(xh >= 1 & xh <= 20);
+    II = find(Um/U0 >= 0.4 & Um/U0 <= 0.6);
+    slope_p = zeros(size(II));
+    for nn = 1:length(II)
+        I = find(xh(1:length(Um)) >= 1 & Um/U0 > Um(II(nn))/U0);
+        % Finding lines using SLM engine to get arbitrary knots
+        slm = slmengine(log(xh(I)),log(Um(I)/U0),...
+          'degree',1,'interiorknots','free','knots',4);
+        I = find(xh >= exp(slm.knots(3)) & xh <= exp(slm.knots(4)));
         p1 = polyfit(log(xh(I)),log(Um(I)/U0),1);
-        loglog(xh(I),exp(p1(2))*xh(I).^p1(1),'-','LineWidth',1.25)
-        text(3,0.83 ,['[\itx/h\rm]^{' num2str(p1(1),'%.2f') '}'],'fontsize',7)
-
-        %I = find(xh >= 15 & xh <= 60);
-        I = find(xh >= 18 & xh <= 50);
-        p2 = polyfit(log(xh(I)),log(Um(I)/U0),1);
-        loglog(xh(I),exp(p2(2))*xh(I).^p2(1),'-','LineWidth',1.25)
-        text(19,0.75 ,['[\itx/h\rm]^{' num2str(p2(1),'%.2f') '}'],'fontsize',7)
-
-        %I = find(xh >= 60 & xh <= 85);
-        I = find(xh >= 48 & xh <= 66);
-        p3 = polyfit(log(xh(I)),log(Um(I)/U0),1);
-        loglog(xh(I),exp(p3(2))*xh(I).^p3(1),'-','LineWidth',1.25)
-        text(26,0.60 ,['[\itx/h\rm]^{' num2str(p3(1),'%.2f') '}'],'fontsize',7)  
-    elseif strcmp(direc,'Satakev8.0_ke/')
-        I = find(xh >= 1 & xh <= 17);
-        p1 = polyfit(log(xh(I)),log(Um(I)/U0),1);
-        loglog(xh(I),exp(p1(2))*xh(I).^p1(1),'-','LineWidth',1.25)
-        text(3,0.80 ,['[\itx/h\rm]^{' num2str(p1(1),'%.2f') '}'],'fontsize',7)
-
-        I = find(xh >= 15 & xh <= 35);
-        p2 = polyfit(log(xh(I)),log(Um(I)/U0),1);
-        loglog(xh(I),exp(p2(2))*xh(I).^p2(1),'-','LineWidth',1.25)
-        text(15,0.77 ,['[\itx/h\rm]^{' num2str(p2(1),'%.2f') '}'],'fontsize',7)
-
-        I = find(xh >= 32 & xh <= 40);
-        p3 = polyfit(log(xh(I)),log(Um(I)/U0),1);
-        loglog(xh(I),exp(p3(2))*xh(I).^p3(1),'-','LineWidth',1.25)
-        text(40,0.75 ,['[\itx/h\rm]^{' num2str(p3(1),'%.2f') '}'],'fontsize',7)    
+        slope_p(nn) = p1(1);
     end
+    slope_vary(turb) = mean(slope_p);
+    slope_std(turb) = std(slope_p);
 
+    I = find(xh(1:length(Um)) >= 1 & Um/U0 > 0.5);
+    % Finding lines using SLM engine to get arbitrary knots
+    slm = slmengine(log(xh(I)),log(Um(I)/U0),...
+          'degree',1,'interiorknots','free','knots',4);
+    for jj = 1:3
+        I = find(xh >= exp(slm.knots(jj)) & xh <= exp(slm.knots(jj+1)));
+        p1 = polyfit(log(xh(I)),log(Um(I)/U0),1);
+        loglog(xh(I),exp(p1(2))*xh(I).^p1(1),'-','LineWidth',1.25)
+        if jj == 1
+            text(exp(mean(log(xh(I)))),0.8,...
+             ['\it\proptox_j\rm^{' num2str(p1(1),'%.2f') '}'],'fontsize',7)
+        elseif jj == 2
+            text(exp(mean(log(xh(I)))),exp(max(log(Um(I)/U0))),...
+             ['\it\proptox_j\rm^{' num2str(p1(1),'%.2f') '}'],'fontsize',7)      
+        else
+            text(exp(mean(log(xh(xh >= exp(slm.knots(2)) & ...
+                 xh <= exp(slm.knots(3))))))-3,exp(min(log(Um(I)/U0))),...
+             ['\it\proptox_j\rm^{' num2str(p1(1),'%.2f') '}'],'fontsize',7)   
+        end
+    end
     grid on 
-    xlabel('\itx/h')
+    %xlabel('\itx_j/h_j')
     if turb == 1
+        title('Standard \itk-\epsilon')
         ylabel('\itU_{m}/U_0')
     else
         set(gca,'YTickLabel','');
+        title('Realizable \itk-\epsilon')
     end
     xlim([1 80])
     %xlim([4 80])
@@ -216,13 +269,17 @@ for turb = 1:2
     set(gca,'fontsize',7)
     
     %% Look at z and y growth rates 
-    Uz90 = squeeze(prctile(uz_all,90,1)); Kz90 = squeeze(prctile(kz_all,90,1));
-    Vz90 = squeeze(prctile(vz_all,90,1)); Tz90 = squeeze(prctile(tz_all,90,1));
+    Uz90 = squeeze(prctile(uz_all,perc_set,1)); 
+    Kz90 = squeeze(prctile(kz_all,perc_set,1));
+    Vz90 = squeeze(prctile(vz_all,perc_set,1)); 
+    Tz90 = squeeze(prctile(tz_all,perc_set,1));
     Uz05 = zeros(i,k(end)); Kz05 = zeros(i,k(end)); 
     Vz05 = zeros(i,k(end)); Tz05 = zeros(i,k(end));
     zhalf = zeros(i,1);
-    Uy90 = squeeze(prctile(uy_all,90,1)); Ky90 = squeeze(prctile(ky_all,90,1));
-    Vy90 = squeeze(prctile(vy_all,90,1)); Ty90 = squeeze(prctile(ty_all,90,1));
+    Uy90 = squeeze(prctile(uy_all,perc_set,1)); 
+    Ky90 = squeeze(prctile(ky_all,perc_set,1));
+    Vy90 = squeeze(prctile(vy_all,perc_set,1)); 
+    Ty90 = squeeze(prctile(ty_all,perc_set,1));
     Uy05 = zeros(i,ie(2)-1); Ky05 = zeros(i,ie(2)-1); 
     Vy05 = zeros(i,ie(2)-1); Ty05 = zeros(i,ie(2)-1);
     yhalf1 = zeros(i,1);
@@ -230,12 +287,17 @@ for turb = 1:2
     for ii = i:-1:1
         % z growth rate
         for kk = 1:k(end)
-            Uz05(ii,kk)  = mean(uz_all(uz_all(:,ii,kk) > Uz90(ii,kk),ii,kk));
-            Kz05(ii,kk)  = mean(kz_all(kz_all(:,ii,kk) > Kz90(ii,kk),ii,kk));
-            Vz05(ii,kk)  = mean(vz_all(vz_all(:,ii,kk) > Vz90(ii,kk),ii,kk));
-            Tz05(ii,kk)  = mean(tz_all(vz_all(:,ii,kk) > Tz90(ii,kk),ii,kk));
+%             Uz05(ii,kk)  = mean(uz_all(uz_all(:,ii,kk) > Uz90(ii,kk),ii,kk));
+%             Kz05(ii,kk)  = mean(kz_all(kz_all(:,ii,kk) > Kz90(ii,kk),ii,kk));
+%             Vz05(ii,kk)  = mean(vz_all(vz_all(:,ii,kk) > Vz90(ii,kk),ii,kk));
+%             Tz05(ii,kk)  = mean(tz_all(vz_all(:,ii,kk) > Tz90(ii,kk),ii,kk));
+            intn = interval(:,ii); intn(intn == 0) = [];          
+            Uz05(ii,kk)  = mean(uz_all(intn,ii,kk));
+            Kz05(ii,kk)  = mean(kz_all(intn,ii,kk));
+            Vz05(ii,kk)  = mean(vz_all(intn,ii,kk));
+            Tz05(ii,kk)  = mean(tz_all(intn,ii,kk));
         end
-        I = find(Uz05(ii,:) <= 0.5*Um(ii)); 
+        I = find(Uz05(ii,1:k(end)-2) <= 0.5*Um(ii)); 
         if ~isempty(I)
             c1 = 0.5*Um(ii) - Uz05(ii,I(end));
             c2 = Uz05(ii,I(end)+1) - 0.5*Um(ii);
@@ -244,10 +306,16 @@ for turb = 1:2
         end
         % y growth rate
         for jj = is(2):ie(2)-1
-            Uy05(ii,jj)  = mean(uy_all(uy_all(:,ii,jj) > Uy90(ii,jj),ii,jj));
-            Ky05(ii,jj)  = mean(ky_all(ky_all(:,ii,jj) > Ky90(ii,jj),ii,jj));
-            Vy05(ii,jj)  = mean(vy_all(vy_all(:,ii,jj) > Vy90(ii,jj),ii,jj));
-            Ty05(ii,jj)  = mean(ty_all(ty_all(:,ii,jj) > Ty90(ii,jj),ii,jj));
+%             Uy05(ii,jj)  = mean(uy_all(uy_all(:,ii,jj) > Uy90(ii,jj),ii,jj));
+%             Ky05(ii,jj)  = mean(ky_all(ky_all(:,ii,jj) > Ky90(ii,jj),ii,jj));
+%             Vy05(ii,jj)  = mean(vy_all(vy_all(:,ii,jj) > Vy90(ii,jj),ii,jj));
+%             Ty05(ii,jj)  = mean(ty_all(ty_all(:,ii,jj) > Ty90(ii,jj),ii,jj));
+            
+            intn = interval(:,ii); intn(intn == 0) = [];          
+            Uy05(ii,jj)  = mean(uy_all(intn,ii,jj));
+            Ky05(ii,jj)  = mean(ky_all(intn,ii,jj));
+            Vy05(ii,jj)  = mean(vy_all(intn,ii,jj));
+            Ty05(ii,jj)  = mean(ty_all(intn,ii,jj));
         end
         I = find(Uy05(ii,:) <= 0.5*Um(ii)); 
         if ~isempty(I) && length(I) > 1
@@ -273,30 +341,36 @@ for turb = 1:2
     hold on
     loglog(xh(1:i),yhalf1/h,'.')
     loglog(xh(1:i),yhalf2/h,'.')
-    if strcmp(direc,'Satakev8.0_Norm_Real_ke/') || strcmp(direc,'Satakev8.0_3D_Real_BW/')
-        I = find(xh >= 2 & xh <= 6.5); I(isnan(zhalf(I))) = [];
-        p1 = polyfit(log(xh(I)),log(zhalf(I)'/h),1);
-        loglog(xh(I),exp(p1(2))*xh(I).^p1(1),'-','LineWidth',1.25)
-        text(2.7,2.6 ,['[\itx/h\rm]^{' num2str(p1(1),'%.2f') '}'],'fontsize',7)
+%     % Plot best fit
+%     II = find(zhalf/h > 2.6); I = find(xh(II(end):end) >= 1); 
+%     I = II(end) + I -1;
+%     p1 = polyfit(log(xh(I)),log(zhalf(I)'/h),1);
+%     loglog(xh(I),exp(p1(2))*xh(I).^p1(1),'-','LineWidth',1.25)
+%     text(2.5,1.8,['\it\proptox_j\rm^{' num2str(p1(1),'%.2f') '}'],'fontsize',7)
 
-%         I = find(xh >= 2 & xh <= 6.5); I(isnan(zhalf(I))) = [];
+    I = find(xh > exp(slm.knots(2)) & xh < exp(slm.knots(end)));
+    p1 = polyfit(log(xh(I)),log(yhalf2(I)'/h),1);
+    loglog(xh(I),exp(p1(2))*xh(I).^p1(1),'-','LineWidth',1.25)
+    text(min(xh(I)),mean(yhalf2(I)/h),...
+         ['\it\proptox_j\rm^{' num2str(p1(1),'%.2f') '}'],'fontsize',7)
+%     if turb == 2
+%         II = find(zhalf/h > 2.6); I = find(xh(II(end):end) >= 2); 
+%         I = II(end) + I -1;
 %         p1 = polyfit(log(xh(I)),log(zhalf(I)'/h),1);
 %         loglog(xh(I),exp(p1(2))*xh(I).^p1(1),'-','LineWidth',1.25)
-%         text(2.7,1 ,['[x/h]^{' num2str(p1(1),'%.2f') '}'],'fontsize',7)
-    elseif strcmp(direc,'Satakev8.0_ke/')
-        I = find(xh >= 1 & xh <= 3.5);
-        p1 = polyfit(log(xh(I)),log(zhalf(I)'/h),1);
-        loglog(xh(I),exp(p1(2))*xh(I).^p1(1),'-','LineWidth',1.25)
-        text(2.5,1.8,['[\itx/h]^{' num2str(p1(1),'%.2f') '}'],'fontsize',7)
-    end
-    legend('\itz_{1/2}/h','\ity^S_{1/2}/h','\ity^N_{1/2}/h','Location','best')
+%         text(2.7,2.6 ,['\it\proptox_j\rm^{' num2str(p1(1),'%.2f') '}'],'fontsize',7)
+%     elseif turb == 1
+% 
+%     end
+    legend('\itz_{1/2}/h_j','\ity^S_{1/2}/h_j','\ity^N_{1/2}/h_j',...
+           'Location','North')
 
     grid on
     xlim([1 80])
     ylim([1 10])
-    xlabel('\itx/h')
+    xlabel('\itx_j/h_j')
     if turb == 1
-        ylabel('\itz_{1/2}/h,y_{1/2}/h')
+        ylabel('\itz_{1/2}/h_j,y_{1/2}/h_j')
     else
         set(gca,'YTickLabel','');
     end
@@ -304,8 +378,26 @@ for turb = 1:2
     ax.XTick = [1 2 3 4 6 8 10 20 40 60];
     ax.YTick = [1 2 4 6 8 10];
     set(gca,'fontsize',7)
+    
+%     % Plot estimate nu_t
+%     figure(2);
+%     subplot = @(m,n,p) subtightplot (m, n, p, [0.06 0.02], ...
+%                                           [0.1 0.01], [0.12 0.01]);
+%     subplot(2,1,1)
+%     hold on
+%     plot(xh(1:i),0.016*Um(1:i).*yhalf2')
 end
-figure(1);
-set(gcf,'PaperUnits','centimeters','PaperPosition',[0 0 14 10],...
-    'PaperPositionMode','manual');
-print('-r600','-depsc','../Paper/Decay_growth.eps'); 
+% figure(1);
+% set(gcf,'PaperUnits','centimeters','PaperPosition',[0 0 14 10],...
+%     'PaperPositionMode','manual');
+% print('-r600','-depsc','../../Paper/Decay_growth.eps'); 
+% 
+% figure(2);
+% set(gcf,'PaperUnits','centimeters','PaperPosition',[0 0 9 9],...
+%     'PaperPositionMode','manual');
+% print('-r600','-depsc','../../Paper/nu_t_max_cu_mu_min.eps'); 
+% 
+% figure(3);
+% set(gcf,'PaperUnits','centimeters','PaperPosition',[0 0 10 7],...
+%     'PaperPositionMode','manual');
+% print('-r600','-depsc','../../Paper/transient_u_max.eps'); 
